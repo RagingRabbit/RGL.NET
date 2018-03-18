@@ -193,18 +193,14 @@ namespace RGL
 
     #region Matrix4
 
-    public class Matrix4
+    public struct Matrix4
     {
+        public static Matrix4 Identity { get { return new Matrix4(new float[] { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f }); } }
+
         private static readonly float[] buffer3 = new float[3];
         private static readonly float[] buffer4 = new float[4];
 
         private float[] elements;
-
-        public Matrix4()
-        {
-            elements = new float[16];
-            setIdentity();
-        }
 
         public Matrix4(float[] elements)
         {
@@ -225,6 +221,8 @@ namespace RGL
             get { return elements[x * 4 + y]; }
             set { elements[x * 4 + y] = value; }
         }
+
+        public float[] array { get { return elements; } }
 
         public Vector4 column0 { get { return new Vector4(elements[0], elements[1], elements[2], elements[3]); } }
         public Vector4 column1 { get { return new Vector4(elements[4], elements[5], elements[6], elements[7]); } }

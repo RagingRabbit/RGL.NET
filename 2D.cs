@@ -1,23 +1,13 @@
 using System;
+using System.Drawing;
 using System.Collections.Generic;
 
 namespace RGL
 {
+    #region SpriteRenderer
+
     public class SpriteBatch
     {
-        private const int INDEX_POSITION = 0;
-        private const int INDEX_COLOR = 1;
-        private const int INDEX_UV = 2;
-        private const int INDEX_TEXTURE = 3;
-
-        private const int SIZE_POSITION = 3 * sizeof(float);
-        private const int SIZE_COLOR = 4 * sizeof(byte);
-        private const int SIZE_UV = 2 * sizeof(float);
-        private const int SIZE_TEXTURE = 1 * sizeof(byte);
-
-        private const int SIZE_VERTEX = SIZE_POSITION + SIZE_COLOR + SIZE_UV + SIZE_TEXTURE;
-        private const int SIZE_SPRITE = 4 * SIZE_VERTEX;
-
         private VertexArray vao;
         private ArrayBuffer vbo0;
         private ArrayBuffer vbo1;
@@ -35,6 +25,8 @@ namespace RGL
         private List<Vector2> uv;
         private List<float> textures;
         private List<uint> indices;
+
+        private Matrix4 mvp;
 
         public SpriteBatch(Shader shader)
         {
@@ -62,29 +54,43 @@ namespace RGL
                 shader["un_Textures", i] = i;
             }
             shader.stop();
+
+            mvp = Matrix4.Identity;
         }
 
-        public void draw(float x, float y, float z, float width, float height, Texture texture)
+        public void draw(float x, float y, float z, float width, float height, Texture2D texture, Color tint, float u0 = 0.0f, float v0 = 0.0f, float u1 = 1.0f, float v1 = 1.0f)
         {
+            float textureID = 0.0f;
+
+            if (textureCache.Contains(texture))
+            {
+                textureID = textureCache.IndexOf(texture);
+            }
+            else
+            {
+                textureID = textureCache.Count;
+                textureCache.Add(texture);
+            }
+
             positions.Add(new Vector3(x, y, z));
-            colors.Add(new Vector4(1, 1, 1, 1));
-            uv.Add(new Vector2(0.0f, 1.0f));
-            textures.Add(0.0f);
+            colors.Add(new Vector4(tint.R / 255.0f, tint.G / 255.0f, tint.B / 255.0f, tint.A / 255.0f));
+            uv.Add(new Vector2(u0, v1));
+            textures.Add(textureID);
 
             positions.Add(new Vector3(x + width, y, z));
-            colors.Add(new Vector4(1, 1, 1, 1));
-            uv.Add(new Vector2(0.0f, 1.0f));
-            textures.Add(0.0f);
+            colors.Add(new Vector4(tint.R / 255.0f, tint.G / 255.0f, tint.B / 255.0f, tint.A / 255.0f));
+            uv.Add(new Vector2(u1, v1));
+            textures.Add(textureID);
 
             positions.Add(new Vector3(x + width, y + height, z));
-            colors.Add(new Vector4(1, 1, 1, 1));
-            uv.Add(new Vector2(0.0f, 1.0f));
-            textures.Add(0.0f);
+            colors.Add(new Vector4(tint.R / 255.0f, tint.G / 255.0f, tint.B / 255.0f, tint.A / 255.0f));
+            uv.Add(new Vector2(u1, v0));
+            textures.Add(textureID);
 
             positions.Add(new Vector3(x, y + height, z));
-            colors.Add(new Vector4(1, 1, 1, 1));
-            uv.Add(new Vector2(0.0f, 1.0f));
-            textures.Add(0.0f);
+            colors.Add(new Vector4(tint.R / 255.0f, tint.G / 255.0f, tint.B / 255.0f, tint.A / 255.0f));
+            uv.Add(new Vector2(u0, v0));
+            textures.Add(textureID);
 
             indices.Add(indexPtr);
             indices.Add(indexPtr + 1);
@@ -101,7 +107,15 @@ namespace RGL
         {
             shader.start();
 
+            shader["un_Matrix", false] = mvp;
+
+            for (int i = 0; i < textureCache.Count; i++)
+            {
+                textureCache[i].bind((uint)i);
+            }
+
             vao.bind();
+            vao.enableAttributes();
 
             vbo0.bind();
             vbo0.setData<Vector3>(positions.ToArray(), BufferUsage.StreamDraw);
@@ -113,8 +127,6 @@ namespace RGL
             vbo3.setData<float>(textures.ToArray(), BufferUsage.StreamDraw);
             ibo.bind();
             ibo.setData<uint>(indices.ToArray(), BufferUsage.StreamDraw);
-
-            vao.enableAttributes();
 
             vao.draw(DrawMode.Triangles, spriteCount);
 
@@ -128,8 +140,14 @@ namespace RGL
             textures.Clear();
             indices.Clear();
 
+            textureCache.Clear();
+
             indexPtr = 0;
             spriteCount = 0;
         }
+
+        public Matrix4 matrix { set { mvp = value; } }
     }
+
+    #endregion
 }

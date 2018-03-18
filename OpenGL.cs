@@ -390,7 +390,7 @@ namespace RGL
             bound = null;
         }
 
-        private uint program;
+        public uint program;
         private uint vertex;
         private uint fragment;
 
@@ -440,6 +440,8 @@ namespace RGL
 
         public int this[string name, int index] { set { glUniform1i(getUniformLocation(name + "[" + index + "]"), value); } }
 
+        public Matrix4 this[string name, bool transpose] { set { glUniformMatrix4fv(getUniformLocation(name), 1, transpose ? (byte)1 : (byte)0, ref value.array[0]); } }
+
         private int getUniformLocation(string name)
         {
             if (!uniforms.ContainsKey(name))
@@ -466,7 +468,7 @@ namespace RGL
 
         public override void setData(int width, int height, int[] pixels, int level = 0)
         {
-            bind();
+            glBindTexture(GL_TEXTURE_2D, handle);
             IntPtr dataPtr = Marshal.AllocHGlobal(pixels.Length * sizeof(int));
             Marshal.Copy(pixels, 0, dataPtr, pixels.Length);
             glTexImage2D((uint)target, level, (int)GL_RGBA8, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, dataPtr);
@@ -501,7 +503,7 @@ namespace RGL
             }
         }
 
-        private uint handle;
+        protected uint handle;
         protected TextureTarget target;
 
         public Texture(TextureTarget target)
@@ -523,10 +525,11 @@ namespace RGL
             glDeleteTextures(1, new uint[] { handle });
         }
 
-        public void bind()
+        public void bind(uint unit)
         {
             if (bound[target] != this)
             {
+                glActiveTexture(GL_TEXTURE0 + unit);
                 glBindTexture((uint)target, handle);
                 bound[target] = this;
             }
@@ -544,6 +547,26 @@ namespace RGL
         public abstract void setData(int width, int height, int[] pixels, int level = 0);
 
         public abstract void setData(Bitmap image);
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Texture)
+            {
+                Texture t = (Texture)obj;
+                return t.handle == this.handle;
+            }
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return "" + handle;
+        }
     }
 
     #endregion
